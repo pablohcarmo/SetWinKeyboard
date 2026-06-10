@@ -52,7 +52,6 @@ O script principal que aplica a configuração de layouts. Ele:
 
 Este script é responsável por corrigir imediatamente qualquer alteração indesejada feita pelo Windows.
 
----
 
 ### `Register-KeyboardTask.ps1`
 
@@ -67,8 +66,6 @@ Cria uma tarefa agendada no Windows para executar automaticamente o script acima
 - Exibe detalhes da tarefa criada
 
 Essa tarefa garante que, mesmo após atualizações do Windows ou eventos do sistema, os layouts corretos sejam restaurados automaticamente.
-
----
 
 ## Como Usar
 
@@ -107,7 +104,6 @@ Essa tarefa garante que, mesmo após atualizações do Windows ou eventos do sis
 .\Register-KeyboardTask.ps1
 ```
 
----
 
 ## Gerenciando a Tarefa Agendada
 
@@ -170,7 +166,7 @@ Códigos comuns:
 - `00020409` — US-International
 
 Lista completa de códigos:
-https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-language-pack-default-values
+https://learn.microsoft.com/pt-pt/windows-hardware/manufacture/desktop/windows-language-pack-default-values?view=windows-11
 
 ---
 
