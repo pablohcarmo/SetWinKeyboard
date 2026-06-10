@@ -2,62 +2,62 @@
 
 <#
 .SYNOPSIS
-    Creates a scheduled task to run the keyboard layout configuration script.
+    Cria uma tarefa agendada para executar o script de configuração de layouts de teclado.
 
 .DESCRIPTION
-    This script creates a scheduled task that:
-    - Runs at user logon
-    - Runs every hour recurrently
-    - Executes the Set-KeyboardLayouts.ps1 script
+    Este script cria uma tarefa agendada que:
+    - Executa no logon do usuário
+    - Executa novamente a cada hora
+    - Executa o script Set-KeyboardLayouts.ps1
 #>
 
 $taskName = "ConfigureKeyboardLayouts"
 $scriptPath = Join-Path $PSScriptRoot "Set-KeyboardLayouts.ps1"
 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 
-Write-Host "Creating scheduled task: $taskName" -ForegroundColor Cyan
-Write-Host "Script to run: $scriptPath" -ForegroundColor Yellow
-Write-Host "User: $currentUser" -ForegroundColor Yellow
+Write-Host "Criando tarefa agendada: $taskName" -ForegroundColor Cyan
+Write-Host "Script a ser executado: $scriptPath" -ForegroundColor Yellow
+Write-Host "Usuário: $currentUser" -ForegroundColor Yellow
 
-# Check if script exists
+# Verifica se o script existe
 if (-not (Test-Path $scriptPath)) {
-    Write-Host "✗ Error: Set-KeyboardLayouts.ps1 not found at $scriptPath" -ForegroundColor Red
+    Write-Host "❌ Erro: Set-KeyboardLayouts.ps1 não encontrado em $scriptPath" -ForegroundColor Red
     exit 1
 }
 
-# Remove existing task if it exists
+# Remove a tarefa existente, se houver
 $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 if ($existingTask) {
-    Write-Host "`nRemoving existing task..." -ForegroundColor Yellow
+    Write-Host "`nRemovendo tarefa existente..." -ForegroundColor Yellow
     Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
 }
 
-# Define the action - run PowerShell with the script
+# Define a ação — executar PowerShell com o script
 $action = New-ScheduledTaskAction `
     -Execute "pwsh.exe" `
-    -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`""
+    -Argument "-NoProfile -WindowStyle Minimized -ExecutionPolicy Bypass -File `"$scriptPath`""
 
-# Define triggers
-# Trigger 1: At logon
+# Define os gatilhos
+# Gatilho 1: No logon do usuário
 $triggerLogon = New-ScheduledTaskTrigger -AtLogOn -User $currentUser
 
-# Trigger 2: Every hour (repeating)
-$triggerHourly = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Hours 1)
+# Gatilho 2: A cada hora (recorrente)
+$triggerHourly = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval ` (New-TimeSpan -Hours 3)
 
-# Combine triggers
+# Combina os gatilhos
 $triggers = @($triggerLogon, $triggerHourly)
 
-# Define principal (run with highest privileges)
+# Define o principal (executar com privilégios elevados)
 $principal = New-ScheduledTaskPrincipal -UserId $currentUser -LogonType Interactive -RunLevel Highest
 
-# Define settings
+# Define configurações adicionais
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries `
     -StartWhenAvailable `
     -ExecutionTimeLimit (New-TimeSpan -Minutes 5)
 
-# Register the scheduled task
+# Registra a tarefa agendada
 try {
     Register-ScheduledTask `
         -TaskName $taskName `
@@ -65,29 +65,29 @@ try {
         -Trigger $triggers `
         -Principal $principal `
         -Settings $settings `
-        -Description "Configures keyboard layouts for en-US and pt-BR at logon and every hour" `
+        -Description "Configura layouts de teclado para en-US e pt-BR no logon e a cada hora" `
         -Force | Out-Null
     
-    Write-Host "`n✓ Scheduled task created successfully!" -ForegroundColor Green
-    Write-Host "`nTask details:" -ForegroundColor Yellow
-    Write-Host "  Name: $taskName"
-    Write-Host "  Triggers:"
-    Write-Host "    - At user logon"
-    Write-Host "    - Every hour (recurring)"
-    Write-Host "  Action: Run Set-KeyboardLayouts.ps1"
-    Write-Host "  User: $currentUser"
-    Write-Host "  Run Level: Highest privileges"
+    Write-Host "`n✅ Tarefa agendada criada com sucesso!" -ForegroundColor Green
+    Write-Host "`nDetalhes da tarefa:" -ForegroundColor Yellow
+    Write-Host "  Nome: $taskName"
+    Write-Host "  Gatilhos:"
+    Write-Host "    - No logon do usuário"
+    Write-Host "    - A cada hora (recorrente)"
+    Write-Host "  Ação: Executar Set-KeyboardLayouts.ps1"
+    Write-Host "  Usuário: $currentUser"
+    Write-Host "  Nível de execução: Máximos privilégios"
     
-    # Show the task
-    Write-Host "`nVerifying task..." -ForegroundColor Cyan
+    # Exibe a tarefa criada
+    Write-Host "`nVerificando tarefa..." -ForegroundColor Cyan
     Get-ScheduledTask -TaskName $taskName | Format-Table -Property TaskName, State, TaskPath -AutoSize
     
-    Write-Host "`nTo manage this task:" -ForegroundColor Magenta
-    Write-Host "  View: Get-ScheduledTask -TaskName '$taskName'"
-    Write-Host "  Run now: Start-ScheduledTask -TaskName '$taskName'"
-    Write-Host "  Remove: Unregister-ScheduledTask -TaskName '$taskName' -Confirm:`$false"
+    Write-Host "`nPara gerenciar esta tarefa:" -ForegroundColor Magenta
+    Write-Host "  Ver:    Get-ScheduledTask -TaskName '$taskName'"
+    Write-Host "  Rodar:  Start-ScheduledTask -TaskName '$taskName'"
+    Write-Host "  Remover: Unregister-ScheduledTask -TaskName '$taskName' -Confirm:`$false"
 }
 catch {
-    Write-Host "✗ Error creating scheduled task: $_" -ForegroundColor Red
+    Write-Host "❌ Erro ao criar a tarefa agendada: $_" -ForegroundColor Red
     exit 1
 }

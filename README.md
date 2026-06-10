@@ -1,150 +1,178 @@
 # Windows Keyboard Layout Configuration Scripts
 
-## The Problem
+## O Problema
 
-Windows has a frustrating habit of automatically adding or changing keyboard
-layouts without user intervention. This commonly happens when:
+O Windows tem o hábito frustrante de adicionar ou alterar layouts de teclado automaticamente, sem qualquer ação do usuário. Isso costuma acontecer quando:
 
-- Installing Windows updates
-- Connecting to remote desktop sessions
-- Installing language packs
-- Switching between different input sources
+- Instala atualizações do Windows
+- Conecta-se a sessões de Área de Trabalho Remota (RDP)
+- Instala pacotes de idiomas
+- Alterna entre diferentes fontes de entrada
+- Reinicia após updates cumulativos
 
-These unwanted keyboard changes can disrupt workflow, especially for users who
-work with multiple languages but need specific keyboard layouts for each.
-Windows often adds standard keyboards that don't match your preferences, leading
-to constant manual reconfiguration.
+Essas mudanças indesejadas atrapalham o fluxo de trabalho, especialmente para usuários que utilizam apenas **pt-BR**, mas o Windows insiste em adicionar:
 
-## The Solution
+- en-US  
+- US-QWERTY  
+- ABNT “padrão”  
+- layouts duplicados  
 
-This repository contains PowerShell scripts to automatically enforce specific
-keyboard layouts for en-US and pt-BR languages. The scripts:
+O resultado é a necessidade constante de reconfigurar manualmente o teclado — algo que deveria ser simples, mas o Windows insiste em desfazer.
 
-- Remove any unwanted keyboard layouts
-- Configure only the keyboards you specify
-- Run automatically at logon and hourly to prevent Windows from reverting
-  changes
+---
 
-## Scripts Overview
+## A Solução
+
+Este repositório contém scripts PowerShell que impedem o Windows de recriar layouts indesejados e garantem que somente os layouts definidos pelo usuário sejam mantidos.
+
+Os scripts:
+
+- Removem qualquer layout de teclado não autorizado
+- Configuram apenas os layouts especificados
+- Reaplicam automaticamente a configuração
+- Executam no logon e periodicamente para evitar que o Windows reverta as mudanças
+
+---
+
+## Visão Geral dos Scripts
 
 ### `Set-KeyboardLayouts.ps1`
 
-The main script that configures keyboard layouts. It:
+O script principal que aplica a configuração de layouts. Ele:
 
-- Checks current keyboard configurations for all languages
-- Removes keyboards that don't match the desired configuration
-- Sets the following keyboards:
-  - **en-US (0409)**: US QWERTY keyboard (`00000409`)
-  - **pt-BR (0416)**: US-International keyboard (`00020409`)
-- Includes commented option for ABNT2 keyboard (`00010416`) for both languages
+- Remove todos os idiomas e layouts existentes
+- Mantém somente o idioma **pt-BR (0416)**
+- Adiciona apenas os seguintes layouts:
+  - **ABNT2** (`00010416`)
+  - **US-International** (`00020409`)
+- Aplica a nova configuração ao sistema
+- Exibe o resultado final
+- Inclui tratamento de erro (`try/catch`)
+- Requer privilégios de Administrador
 
-**Note**: Requires Administrator privileges to modify system keyboard settings.
+Este script é responsável por corrigir imediatamente qualquer alteração indesejada feita pelo Windows.
+
+---
 
 ### `Register-KeyboardTask.ps1`
 
-Creates a Windows scheduled task to run the keyboard configuration script
-automatically. The task:
+Cria uma tarefa agendada no Windows para executar automaticamente o script acima. A tarefa:
 
-- Runs at user logon
-- Runs every hour (recurring)
-- Executes with highest privileges
-- Runs hidden in the background
+- Executa no logon do usuário atual
+- Executa novamente a cada **3 horas**
+- Roda com privilégios elevados
+- Mantém o script invisível (janela minimizada)
+- Remove tarefas antigas antes de recriar
+- Verifica se o script principal existe
+- Exibe detalhes da tarefa criada
 
-## Usage
+Essa tarefa garante que, mesmo após atualizações do Windows ou eventos do sistema, os layouts corretos sejam restaurados automaticamente.
 
-### Initial Setup
+---
 
-1. **Clone or download this repository** to your local machine
+## Como Usar
 
-2. **Configure your preferred keyboards** (if needed):
+### Configuração Inicial
 
-   - Open `Set-KeyboardLayouts.ps1` in a text editor
-   - By default, it uses US QWERTY for en-US and US-International for pt-BR
-   - To use ABNT2 keyboards instead, comment out the current keyboard lines and
-     uncomment the ABNT2 lines:
-     ```powershell
-     $desiredLayouts = @{
-         # "0409" = "00000409"  # en-US with US QWERTY
-         # "0416" = "00020409"  # pt-BR with US-International
-         "0409" = "00010416"  # en-US with ABNT2
-         "0416" = "00010416"  # pt-BR with ABNT2
-     }
-     ```
+1. **Clone ou baixe este repositório** para sua máquina.
 
-3. **Run the keyboard configuration script** (as Administrator):
+2. **Verifique os layouts desejados** (opcional):
 
-   ```powershell
-   .\Set-KeyboardLayouts.ps1
+   O script já está configurado para usar:
+
+   - **ABNT2**
+   - **US-International**
+
+   Caso queira alterar, edite a tabela:
+
    ```
+   $desiredLayouts = @{
+       "0416" = @(
+           "00010416",  # ABNT2
+           "00020409"   # US-International
+       )
+   }
 
-4. **Set up automatic execution** (as Administrator):
-   ```powershell
-   .\Register-KeyboardTask.ps1
-   ```
+### Guia de Execução e Gerenciamento
 
-### Managing the Scheduled Task
+#### Execute o script de configuração (como Administrador):
 
-**View the task:**
+```
+.\Set-KeyboardLayouts.ps1
+````
 
-```powershell
+#### Crie a tarefa automática (como Administrador):
+
+```
+.\Register-KeyboardTask.ps1
+```
+
+---
+
+## Gerenciando a Tarefa Agendada
+
+### Ver a tarefa:
+
+```
 Get-ScheduledTask -TaskName 'ConfigureKeyboardLayouts'
 ```
 
-**Run the task immediately:**
+### Executar imediatamente:
 
-```powershell
+```
 Start-ScheduledTask -TaskName 'ConfigureKeyboardLayouts'
 ```
 
-**Remove the scheduled task:**
+### Remover a tarefa:
 
-```powershell
+```
 Unregister-ScheduledTask -TaskName 'ConfigureKeyboardLayouts' -Confirm:$false
 ```
 
-### Manual Execution
+## Execução Manual
 
-If you prefer not to use the scheduled task, you can run
-`Set-KeyboardLayouts.ps1` manually whenever Windows changes your keyboard
-settings.
+Se preferir não usar a tarefa agendada, você pode executar:
 
-## Requirements
+```
+.\Set-KeyboardLayouts.ps1
+```
+sempre que o Windows alterar seus layouts de teclado.
 
-- Windows 10 or later
-- PowerShell 7+ (pwsh) or Windows PowerShell 5.1+
-- Administrator privileges
+---
 
-## Notes
+## Requisitos
+- Windows 10 ou superior
+- PowerShell 7+ (pwsh) — recomendado
+- Privilégios de Administrador
+- Execução de scripts habilitada (`ExecutionPolicy Bypass` já é aplicado automaticamente)
 
-- After running the keyboard configuration script, you may need to sign out and
-  sign back in for changes to take full effect
-- The scheduled task runs with highest privileges to ensure it can modify
-  keyboard settings
-- The task is configured to run even on battery power (useful for laptops)
-- If you modify `Set-KeyboardLayouts.ps1` after creating the scheduled task, the
-  changes will be applied automatically on the next trigger
+---
 
-## Customization
+## Observações
+- Após aplicar a configuração, pode ser necessário sair e entrar novamente na conta para que o Windows atualize todos os componentes.
+- A tarefa agendada roda com privilégios elevados para garantir que possa modificar configurações de idioma.
+- A tarefa é configurada para rodar mesmo em laptops usando bateria.
+- Se você modificar o script `Set-KeyboardLayouts.ps1`, a tarefa agendada aplicará automaticamente as mudanças na próxima execução.
 
-To add or modify keyboard layouts, edit the `$desiredLayouts` hashtable in
-`Set-KeyboardLayouts.ps1`. The format is:
+---
 
-```powershell
+## Personalização
+Para adicionar ou alterar layouts, edite a tabela:
+
+```
 $desiredLayouts = @{
-    "LanguageCode" = "KeyboardCode"
+    "0416" = @("KeyboardCode1", "KeyboardCode2")
 }
 ```
 
-Common keyboard codes:
+Códigos comuns:
+- `00010416` — ABNT2
+- `00020409` — US-International
 
-- `00000409` - US QWERTY
-- `00020409` - US-International
-- `00010416` - Brazilian ABNT2
+Lista completa de códigos:
+https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-language-pack-default-values
 
-See
-[Microsoft's documentation](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-language-pack-default-values)
-for a full list of language and keyboard codes.
+---
 
-## License
-
-Feel free to use and modify these scripts as needed.
+## Licença
+Sinta-se à vontade para usar, modificar e distribuir estes scripts conforme necessário.
